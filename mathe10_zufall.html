@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Der Zufalls-Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .ball {
+            transition: all 0.5s ease-in-out;
+        }
+        .tree-branch {
+            transition: stroke 0.3s ease;
+        }
+        .tree-text {
+            transition: fill 0.3s ease;
+            cursor: help;
+        }
+        .modal {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex items-center justify-center min-h-screen p-4">
+
+    <div id="app-container" class="w-full max-w-7xl mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <!-- ===================================================================== -->
+        <!-- Setup Screen -->
+        <!-- ===================================================================== -->
+        <div id="setup-screen" class="p-8 md:p-12">
+            <header class="text-center mb-10">
+                <h1 class="text-4xl md:text-5xl font-bold text-sky-700">Der Zufalls-Explorer</h1>
+                <p class="text-slate-600 mt-3 text-lg">Zweistufige Zufallsexperimente interaktiv verstehen</p>
+            </header>
+
+            <div class="space-y-8">
+                <!-- Step 1: Experiment Type -->
+                <div>
+                    <h2 class="text-xl font-semibold mb-4 border-b pb-2">1. Wähle ein Experiment</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button id="btn-urn" class="experiment-btn p-6 border-2 border-slate-300 bg-white rounded-lg text-left transition duration-300 hover:border-sky-500 hover:bg-sky-50">
+                            <span class="text-4xl mb-2 block">🏺</span>
+                            <h3 class="font-bold text-lg text-sky-800">Urnen-Experiment</h3>
+                            <p class="text-sm text-slate-600">Kugeln unterschiedlicher Farben ziehen.</p>
+                        </button>
+                        <button id="btn-card" class="experiment-btn p-6 border-2 border-slate-300 bg-white rounded-lg text-left transition duration-300 hover:border-sky-500 hover:bg-sky-50">
+                            <span class="text-4xl mb-2 block">🃏</span>
+                            <h3 class="font-bold text-lg text-sky-800">Karten-Experiment</h3>
+                            <p class="text-sm text-slate-600">Rote vs. schwarze Karten ziehen.</p>
+                        </button>
+                        <button id="btn-lottery" class="experiment-btn p-6 border-2 border-slate-300 bg-white rounded-lg text-left transition duration-300 hover:border-sky-500 hover:bg-sky-50">
+                            <span class="text-4xl mb-2 block">🎟️</span>
+                            <h3 class="font-bold text-lg text-sky-800">Lose ziehen</h3>
+                            <p class="text-sm text-slate-600">Gewinne und Nieten aus einer Trommel ziehen.</p>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Customization (for Urn) -->
+                <div id="urn-setup" class="hidden space-y-4">
+                     <h2 class="text-xl font-semibold mb-4 border-b pb-2">2. Lege die Kugeln in die Urne</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center bg-slate-50 p-6 rounded-lg">
+                        <div>
+                            <label for="red-balls" class="block text-sm font-medium text-slate-700">Anzahl rote Kugeln</label>
+                            <input type="number" id="red-balls" value="3" min="0" class="mt-1 block w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                        </div>
+                        <div>
+                            <label for="blue-balls" class="block text-sm font-medium text-slate-700">Anzahl blaue Kugeln</label>
+                            <input type="number" id="blue-balls" value="5" min="0" class="mt-1 block w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Customization (for Lottery) -->
+                <div id="lottery-setup" class="hidden space-y-4">
+                     <h2 class="text-xl font-semibold mb-4 border-b pb-2">2. Bestücke die Lostrommel</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center bg-slate-50 p-6 rounded-lg">
+                        <div>
+                            <label for="win-tickets" class="block text-sm font-medium text-slate-700">Anzahl Gewinne</label>
+                            <input type="number" id="win-tickets" value="5" min="0" class="mt-1 block w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                        </div>
+                        <div>
+                            <label for="dud-tickets" class="block text-sm font-medium text-slate-700">Anzahl Nieten</label>
+                            <input type="number" id="dud-tickets" value="10" min="0" class="mt-1 block w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Info for Cards -->
+                <div id="card-setup" class="hidden bg-slate-50 p-6 rounded-lg">
+                    <h2 class="text-xl font-semibold mb-2">Info zum Karten-Experiment</h2>
+                    <p class="text-slate-700">Dieses Experiment simuliert das Ziehen aus einem Standard-Skatblatt (32 Karten). Es wird zwischen 16 roten (Herz, Karo) und 16 schwarzen (Pik, Kreuz) Karten unterschieden.</p>
+                </div>
+
+                <!-- Step 3: Mode Selection -->
+                <div id="mode-selection" class="hidden">
+                    <h2 class="text-xl font-semibold mb-4 border-b pb-2 flex items-center">
+                        3. Wähle den Modus
+                        <button id="mode-info-btn" class="ml-2 text-sky-600 hover:text-sky-800 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </h2>
+                    <div class="flex gap-4">
+                        <button id="btn-with-replacement" class="mode-btn flex-1 p-4 border-2 border-slate-300 bg-white rounded-lg text-center transition duration-300 hover:border-sky-500 hover:bg-sky-50">
+                            <span class="font-semibold text-lg">Mit Zurücklegen</span>
+                        </button>
+                        <button id="btn-without-replacement" class="mode-btn flex-1 p-4 border-2 border-slate-300 bg-white rounded-lg text-center transition duration-300 hover:border-sky-500 hover:bg-sky-50">
+                             <span class="font-semibold text-lg">Ohne Zurücklegen</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="mt-12 text-center">
+                <button id="start-simulation-btn" class="bg-sky-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:bg-sky-700 transition transform hover:scale-105 disabled:bg-slate-400 disabled:cursor-not-allowed disabled:transform-none" disabled>
+                    Simulation starten
+                </button>
+            </footer>
+        </div>
+        
+        <!-- ===================================================================== -->
+        <!-- Simulation Screen -->
+        <!-- ===================================================================== -->
+        <div id="simulation-screen" class="hidden">
+            <header class="p-4 bg-slate-50 border-b flex justify-between items-center flex-wrap gap-2">
+                <div>
+                    <h1 id="simulation-title" class="text-xl font-bold text-sky-700">Simulation</h1>
+                    <p id="simulation-subtitle" class="text-sm text-slate-500"></p>
+                </div>
+                <div>
+                     <button id="btn-whiteboard-mode" class="mr-2 bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition">
+                        Tafelbild-Modus
+                    </button>
+                    <button id="btn-reset" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 transition">
+                        Neu starten
+                    </button>
+                </div>
+            </header>
+            
+            <main class="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 min-h-[70vh]">
+                <!-- Left Panel: Simulation & Summary -->
+                <div class="flex flex-col gap-4">
+                    <!-- Simulation Area -->
+                    <div class="bg-slate-50 p-6 rounded-lg shadow-inner flex-grow flex flex-col">
+                        <h2 class="text-lg font-semibold mb-4 text-center">Experiment</h2>
+                        <div id="simulation-visual" class="flex-grow flex items-center justify-center mb-4">
+                            <!-- Visuals (Urn, Cards, Lottery) will be injected here -->
+                        </div>
+                         <div id="draw-result" class="text-center h-12 flex items-center justify-center">
+                            <p class="text-lg font-medium text-slate-700"></p>
+                        </div>
+                        <button id="btn-draw" class="w-full bg-sky-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-sky-700 transition transform hover:scale-105 disabled:bg-slate-400">
+                            Ziehen
+                        </button>
+                    </div>
+
+                    <!-- Event Calculation Area -->
+                    <div id="event-area" class="bg-slate-50 p-6 rounded-lg shadow-inner hidden">
+                        <h2 class="text-lg font-semibold mb-4">Ereignisse berechnen</h2>
+                        <div id="event-buttons" class="grid grid-cols-2 gap-2 text-sm">
+                           <!-- Event buttons will be injected here -->
+                        </div>
+                         <div class="mt-4 pt-4 border-t">
+                            <h3 class="font-semibold mb-2">Ergebnis der Summenregel</h3>
+                            <div id="sum-rule-display" class="bg-white p-3 rounded text-center">
+                                <span class="font-mono text-lg">Wähle ein Ereignis aus.</span>
+                            </div>
+                        </div>
+                         <div class="mt-4 text-center">
+                            <button id="quiz-btn" class="w-full bg-amber-500 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-amber-600 transition">
+                                Wissen testen!
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Tree Diagram -->
+                <div class="bg-slate-100 p-2 rounded-lg shadow-inner flex items-center justify-center min-h-[400px]">
+                    <svg id="tree-diagram" class="w-full h-full"></svg>
+                </div>
+            </main>
+        </div>
+
+         <!-- ===================================================================== -->
+        <!-- Whiteboard Screen -->
+        <!-- ===================================================================== -->
+        <div id="whiteboard-screen" class="hidden p-4 md:p-8 bg-slate-50">
+             <header class="flex justify-between items-center mb-4">
+                <div>
+                    <h1 id="whiteboard-title" class="text-2xl md:text-3xl font-bold text-sky-700">Tafelbild</h1>
+                    <p id="whiteboard-subtitle" class="text-md text-slate-500"></p>
+                </div>
+                <button id="btn-exit-whiteboard" class="bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-sky-700 transition">
+                    Zurück zur Simulation
+                </button>
+            </header>
+             <div class="w-full h-[80vh] bg-white rounded-lg shadow-lg p-4 flex items-center justify-center">
+                <svg id="whiteboard-tree" class="w-full h-full"></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- Quiz Screen -->
+    <!-- ===================================================================== -->
+    <div id="quiz-screen" class="fixed inset-0 bg-sky-800 bg-opacity-95 backdrop-blur-sm flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-4xl w-full">
+            <header class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-bold text-sky-700">Wissens-Quiz: Zuordnungsaufgabe</h2>
+                <button id="quiz-close-btn" class="text-slate-500 hover:text-red-600 transition">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </button>
+            </header>
+            <p class="text-slate-600 mb-6">Klicke zuerst auf einen Begriff und dann auf die passende Erklärung, um sie zuzuordnen. Viel Erfolg!</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div id="quiz-terms" class="space-y-4">
+                    <!-- Term items will be injected here -->
+                </div>
+                <div id="quiz-definitions" class="space-y-4">
+                    <!-- Definition items will be injected here -->
+                </div>
+            </div>
+             <footer class="mt-8 text-center">
+                <p id="quiz-feedback" class="text-lg font-semibold h-8"></p>
+                <button id="quiz-back-btn" class="hidden mt-4 bg-sky-600 text-white font-bold py-2 px-6 rounded-lg shadow-md hover:bg-sky-700 transition">
+                    Zurück zur Simulation
+                </button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- Modal for Info -->
+    <!-- ===================================================================== -->
+    <div id="info-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 -translate-y-4">
+        <div id="modal-content" class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full transform scale-95">
+            <h3 id="modal-title" class="text-2xl font-bold text-sky-800 mb-4">Info</h3>
+            <div id="modal-body" class="text-slate-700 space-y-4">
+                <!-- Modal content goes here -->
+            </div>
+            <button id="modal-close-btn" class="mt-6 w-full bg-sky-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-sky-700 transition">
+                Verstanden
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- STATE MANAGEMENT ---
+            let state = {
+                currentScreen: 'setup', // 'setup', 'simulation', 'whiteboard'
+                experimentType: null, // 'urn', 'card', 'lottery'
+                isWithReplacement: null, // true or false
+                setupData: { a: 3, b: 5 }, // Generic setup data holder
+                drawHistory: [], // e.g., ['a', 'b']
+                treeData: null,
+                selectedPathsForSum: [],
+                quizState: {
+                    selectedTerm: null,
+                    matches: {}, // { termId: definitionId }
+                    completed: false,
+                }
+            };
+
+            // --- DOM ELEMENTS ---
+            const screens = {
+                setup: document.getElementById('setup-screen'),
+                simulation: document.getElementById('simulation-screen'),
+                whiteboard: document.getElementById('whiteboard-screen'),
+            };
+            
+            const setupElements = {
+                urnBtn: document.getElementById('btn-urn'),
+                cardBtn: document.getElementById('btn-card'),
+                lotteryBtn: document.getElementById('btn-lottery'),
+                experimentBtns: document.querySelectorAll('.experiment-btn'),
+                urnSetupDiv: document.getElementById('urn-setup'),
+                cardSetupDiv: document.getElementById('card-setup'),
+                lotterySetupDiv: document.getElementById('lottery-setup'),
+                modeSelectionDiv: document.getElementById('mode-selection'),
+                redBallsInput: document.getElementById('red-balls'),
+                blueBallsInput: document.getElementById('blue-balls'),
+                winTicketsInput: document.getElementById('win-tickets'),
+                dudTicketsInput: document.getElementById('dud-tickets'),
+                withReplacementBtn: document.getElementById('btn-with-replacement'),
+                withoutReplacementBtn: document.getElementById('btn-without-replacement'),
+                startBtn: document.getElementById('start-simulation-btn'),
+                modeInfoBtn: document.getElementById('mode-info-btn'),
+            };
+
+            const simElements = {
+                title: document.getElementById('simulation-title'),
+                subtitle: document.getElementById('simulation-subtitle'),
+                visual: document.getElementById('simulation-visual'),
+                drawResult: document.getElementById('draw-result').querySelector('p'),
+                drawBtn: document.getElementById('btn-draw'),
+                resetBtn: document.getElementById('btn-reset'),
+                treeSVG: document.getElementById('tree-diagram'),
+                eventArea: document.getElementById('event-area'),
+                eventButtons: document.getElementById('event-buttons'),
+                sumRuleDisplay: document.getElementById('sum-rule-display').querySelector('span'),
+                whiteboardBtn: document.getElementById('btn-whiteboard-mode'),
+                quizBtn: document.getElementById('quiz-btn'),
+            };
+
+             const whiteboardElements = {
+                title: document.getElementById('whiteboard-title'),
+                subtitle: document.getElementById('whiteboard-subtitle'),
+                treeSVG: document.getElementById('whiteboard-tree'),
+                exitBtn: document.getElementById('btn-exit-whiteboard'),
+            };
+
+            const quizElements = {
+                screen: document.getElementById('quiz-screen'),
+                closeBtn: document.getElementById('quiz-close-btn'),
+                termsContainer: document.getElementById('quiz-terms'),
+                definitionsContainer: document.getElementById('quiz-definitions'),
+                feedback: document.getElementById('quiz-feedback'),
+                backBtn: document.getElementById('quiz-back-btn'),
+            };
+            
+            const modalElements = {
+                container: document.getElementById('info-modal'),
+                content: document.getElementById('modal-content'),
+                title: document.getElementById('modal-title'),
+                body: document.getElementById('modal-body'),
+                closeBtn: document.getElementById('modal-close-btn'),
+            };
+
+
+            // --- UTILITY FUNCTIONS ---
+            const switchScreen = (screenName) => {
+                state.currentScreen = screenName;
+                Object.values(screens).forEach(screen => screen.classList.add('hidden'));
+                screens[screenName].classList.remove('hidden');
+            };
+
+            const showModal = (title, bodyHTML) => {
+                modalElements.title.textContent = title;
+                modalElements.body.innerHTML = bodyHTML;
+                modalElements.container.classList.remove('hidden');
+                setTimeout(() => {
+                    modalElements.container.classList.remove('opacity-0', '-translate-y-4');
+                    modalElements.content.classList.remove('scale-95');
+                }, 10);
+            };
+
+            const hideModal = () => {
+                modalElements.container.classList.add('opacity-0', '-translate-y-4');
+                modalElements.content.classList.add('scale-95');
+                setTimeout(() => {
+                    modalElements.container.classList.add('hidden');
+                }, 300);
+            };
+            
+            const formatFraction = (numerator, denominator) => {
+                if (denominator === 0) return '0';
+                return `<span class="inline-block text-center text-sm font-mono"><span class="block border-b border-slate-600 px-1">${numerator}</span><span class="block px-1">${denominator}</span></span>`;
+            };
+
+            // --- SETUP LOGIC ---
+            const updateSetupUI = () => {
+                // Experiment button selection
+                setupElements.experimentBtns.forEach(btn => {
+                    const btnExperimentType = btn.id.split('-')[1];
+                    if (state.experimentType === btnExperimentType) {
+                        btn.classList.add('border-sky-500', 'bg-sky-50');
+                        btn.classList.remove('border-slate-300', 'bg-white');
+                    } else {
+                        btn.classList.remove('border-sky-500', 'bg-sky-50');
+                        btn.classList.add('border-slate-300', 'bg-white');
+                    }
+                });
+
+                // Show correct setup panel
+                setupElements.urnSetupDiv.classList.add('hidden');
+                setupElements.cardSetupDiv.classList.add('hidden');
+                setupElements.lotterySetupDiv.classList.add('hidden');
+                setupElements.modeSelectionDiv.classList.add('hidden');
+
+                if (state.experimentType === 'urn') {
+                    setupElements.urnSetupDiv.classList.remove('hidden');
+                    setupElements.modeSelectionDiv.classList.remove('hidden');
+                } else if (state.experimentType === 'card') {
+                    setupElements.cardSetupDiv.classList.remove('hidden');
+                    setupElements.modeSelectionDiv.classList.remove('hidden');
+                } else if (state.experimentType === 'lottery') {
+                    setupElements.lotterySetupDiv.classList.remove('hidden');
+                    setupElements.modeSelectionDiv.classList.remove('hidden');
+                }
+
+
+                // Mode button selection
+                document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('border-sky-500', 'bg-sky-50'));
+                if (state.isWithReplacement === true) {
+                    setupElements.withReplacementBtn.classList.add('border-sky-500', 'bg-sky-50');
+                } else if (state.isWithReplacement === false) {
+                    setupElements.withoutReplacementBtn.classList.add('border-sky-500', 'bg-sky-50');
+                }
+
+                // Start button state
+                const isReady = state.experimentType && (state.isWithReplacement !== null);
+                setupElements.startBtn.disabled = !isReady;
+            };
+
+            setupElements.experimentBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.experimentType = btn.id.split('-')[1];
+                     // Reset mode selection when changing experiment type
+                    state.isWithReplacement = null;
+                    updateSetupUI();
+                });
+            });
+
+            setupElements.withReplacementBtn.addEventListener('click', () => {
+                state.isWithReplacement = true;
+                updateSetupUI();
+            });
+            
+            setupElements.withoutReplacementBtn.addEventListener('click', () => {
+                state.isWithReplacement = false;
+                updateSetupUI();
+            });
+            
+            setupElements.modeInfoBtn.addEventListener('click', () => {
+                showModal(
+                    'Unterschied der Modi',
+                    `<p class="mb-2"><strong>Mit Zurücklegen:</strong></p>
+                    <p>Die Chancen bleiben bei jedem Zug genau gleich. Stell dir vor, du legst eine gezogene Kugel wieder zurück, bevor du erneut ziehst. Die Gesamtzahl der Kugeln ändert sich nicht.</p>
+                    <hr class="my-4">
+                    <p class="mb-2"><strong>Ohne Zurücklegen:</strong></p>
+                    <p>Die Chancen ändern sich nach jedem Zug, da die gezogene Kugel draußen bleibt. Dadurch verringert sich die Gesamtzahl der Kugeln für den nächsten Zug.</p>`
+                );
+            });
+
+            setupElements.startBtn.addEventListener('click', () => {
+                if (state.experimentType === 'urn') {
+                    state.setupData.a = parseInt(setupElements.redBallsInput.value) || 0;
+                    state.setupData.b = parseInt(setupElements.blueBallsInput.value) || 0;
+                } else if (state.experimentType === 'lottery') {
+                    state.setupData.a = parseInt(setupElements.winTicketsInput.value) || 0;
+                    state.setupData.b = parseInt(setupElements.dudTicketsInput.value) || 0;
+                }
+                startSimulation();
+            });
+
+
+            // --- SIMULATION LOGIC ---
+            const startSimulation = () => {
+                state.drawHistory = [];
+                state.selectedPathsForSum = [];
+                calculateTreeData();
+                switchScreen('simulation');
+                updateSimulationUI();
+            };
+
+            const performDraw = () => {
+                if (state.drawHistory.length >= 2) return;
+
+                const currentSetup = getSetupForDraw(state.drawHistory.length);
+                const total = currentSetup.a + currentSetup.b;
+                if (total === 0) {
+                    simElements.drawResult.textContent = 'Experiment nicht möglich.';
+                    simElements.drawBtn.disabled = true;
+                    return;
+                }
+                
+                const population = [...Array(currentSetup.a).fill('a'), ...Array(currentSetup.b).fill('b')];
+                const draw = population[Math.floor(Math.random() * population.length)];
+                
+                state.drawHistory.push(draw);
+                updateSimulationUI();
+            };
+            
+            const getSetupForDraw = (drawIndex) => {
+                let a = state.setupData.a;
+                let b = state.setupData.b;
+
+                if (!state.isWithReplacement && drawIndex > 0) {
+                    if (state.drawHistory[0] === 'a') a--;
+                    if (state.drawHistory[0] === 'b') b--;
+                }
+                return { a, b };
+            };
+            
+            const calculateTreeData = () => {
+                let initialA, initialB, labels;
+                
+                switch(state.experimentType) {
+                    case 'urn':
+                        initialA = state.setupData.a;
+                        initialB = state.setupData.b;
+                        labels = { a: 'rote Kugel', b: 'blaue Kugel' };
+                        break;
+                    case 'card':
+                        initialA = 16; // 16 red cards
+                        initialB = 16; // 16 black cards
+                        state.setupData = { a: initialA, b: initialB };
+                        labels = { a: 'rote Karte', b: 'schwarze Karte' };
+                        break;
+                    case 'lottery':
+                         initialA = state.setupData.a;
+                         initialB = state.setupData.b;
+                         labels = { a: 'Gewinn', b: 'Niete' };
+                         break;
+                }
+
+                const initialTotal = initialA + initialB;
+                if (initialTotal === 0) { 
+                    state.treeData = null; 
+                    return;
+                }
+
+                state.treeData = {
+                    p1_a: initialA / initialTotal,
+                    p1_b: initialB / initialTotal,
+                    outcomes: {},
+                    labels: labels,
+                };
+
+                // Path: a -> a
+                let p2_a_after_a, total2_after_a;
+                if (state.isWithReplacement) {
+                    total2_after_a = initialTotal;
+                    p2_a_after_a = initialA / total2_after_a;
+                } else {
+                    total2_after_a = initialTotal > 0 ? initialTotal - 1 : 0;
+                    p2_a_after_a = initialA > 0 ? (initialA - 1) / total2_after_a : 0;
+                }
+                state.treeData.outcomes.aa = {
+                    path: [labels.a, labels.a],
+                    p1: state.treeData.p1_a,
+                    p2: total2_after_a > 0 ? p2_a_after_a : 0,
+                    prob: state.treeData.p1_a * (total2_after_a > 0 ? p2_a_after_a : 0),
+                    p1_frac: [initialA, initialTotal],
+                    p2_frac: [state.isWithReplacement ? initialA : initialA - 1, total2_after_a],
+                };
+
+                // Path: a -> b
+                let p2_b_after_a;
+                if (state.isWithReplacement) {
+                    p2_b_after_a = initialB / total2_after_a;
+                } else {
+                    p2_b_after_a = initialB / total2_after_a;
+                }
+                state.treeData.outcomes.ab = {
+                    path: [labels.a, labels.b],
+                    p1: state.treeData.p1_a,
+                    p2: total2_after_a > 0 ? p2_b_after_a : 0,
+                    prob: state.treeData.p1_a * (total2_after_a > 0 ? p2_b_after_a : 0),
+                    p1_frac: [initialA, initialTotal],
+                    p2_frac: [initialB, total2_after_a],
+                };
+
+                // Path: b -> a
+                let p2_a_after_b, total2_after_b;
+                 if (state.isWithReplacement) {
+                    total2_after_b = initialTotal;
+                    p2_a_after_b = initialA / total2_after_b;
+                } else {
+                    total2_after_b = initialTotal > 0 ? initialTotal - 1 : 0;
+                    p2_a_after_b = initialA / total2_after_b;
+                }
+                state.treeData.outcomes.ba = {
+                    path: [labels.b, labels.a],
+                    p1: state.treeData.p1_b,
+                    p2: total2_after_b > 0 ? p2_a_after_b : 0,
+                    prob: state.treeData.p1_b * (total2_after_b > 0 ? p2_a_after_b : 0),
+                    p1_frac: [initialB, initialTotal],
+                    p2_frac: [initialA, total2_after_b],
+                };
+
+                // Path: b -> b
+                let p2_b_after_b;
+                if (state.isWithReplacement) {
+                    p2_b_after_b = initialB / total2_after_b;
+                } else {
+                    p2_b_after_b = initialB > 0 ? (initialB - 1) / total2_after_b : 0;
+                }
+                 state.treeData.outcomes.bb = {
+                    path: [labels.b, labels.b],
+                    p1: state.treeData.p1_b,
+                    p2: total2_after_b > 0 ? p2_b_after_b : 0,
+                    prob: state.treeData.p1_b * (total2_after_b > 0 ? p2_b_after_b : 0),
+                    p1_frac: [initialB, initialTotal],
+                    p2_frac: [state.isWithReplacement ? initialB : initialB - 1, total2_after_b],
+                };
+            };
+            
+
+            // --- UI RENDERING ---
+            const updateSimulationUI = () => {
+                const drawStep = state.drawHistory.length;
+                let title, subtitle, drawBtnText, startText, resultTextA, resultTextB;
+
+                switch(state.experimentType) {
+                    case 'urn':
+                        title = 'Simulation: Urnen-Experiment';
+                        subtitle = `Modus: ${state.isWithReplacement ? 'Mit Zurücklegen' : 'Ohne Zurücklegen'} | Start: ${state.setupData.a} rote, ${state.setupData.b} blaue Kugeln`;
+                        drawBtnText = drawStep === 0 ? '1. Kugel ziehen' : '2. Kugel ziehen';
+                        startText = 'Klicke, um die erste Kugel zu ziehen.';
+                        resultTextA = 'Rot';
+                        resultTextB = 'Blau';
+                        renderUrnVisual();
+                        break;
+                    case 'card':
+                        title = 'Simulation: Karten-Experiment';
+                        subtitle = `Modus: ${state.isWithReplacement ? 'Mit Zurücklegen' : 'Ohne Zurücklegen'} | Skatblatt (32 Karten)`;
+                        drawBtnText = drawStep === 0 ? '1. Karte ziehen' : '2. Karte ziehen';
+                        startText = 'Klicke, um die erste Karte zu ziehen.';
+                        resultTextA = 'Rot';
+                        resultTextB = 'Schwarz';
+                        renderCardVisual();
+                        break;
+                    case 'lottery':
+                         title = 'Simulation: Lose ziehen';
+                         subtitle = `Modus: ${state.isWithReplacement ? 'Mit Zurücklegen' : 'Ohne Zurücklegen'} | ${state.setupData.a} Gewinne, ${state.setupData.b} Nieten`;
+                         drawBtnText = drawStep === 0 ? '1. Los ziehen' : '2. Los ziehen';
+                         startText = 'Klicke, um das erste Los zu ziehen.';
+                         resultTextA = 'Gewinn';
+                         resultTextB = 'Niete';
+                         renderLotteryVisual();
+                         break;
+                }
+                
+                simElements.title.textContent = title;
+                simElements.subtitle.textContent = subtitle;
+                simElements.drawBtn.textContent = drawBtnText;
+
+                // Update draw result text
+                if (drawStep > 0) {
+                    const lastDraw = state.drawHistory[drawStep - 1];
+                    const resultText = lastDraw === 'a' ? resultTextA : resultTextB;
+                    const colorClass = lastDraw === 'a' ? 'text-red-600' : 'text-blue-600';
+                    simElements.drawResult.innerHTML = `Ergebnis: <span class="font-bold ${colorClass}">${resultText}</span>`;
+                } else {
+                    simElements.drawResult.textContent = startText;
+                }
+                
+                // Update button
+                simElements.drawBtn.disabled = drawStep >= 2;
+                if (drawStep >= 2) {
+                    simElements.drawResult.textContent += ' | Experiment beendet.';
+                    simElements.eventArea.classList.remove('hidden');
+                    renderEventButtons();
+                    updateSumRuleDisplay(true); // reset display
+                } else {
+                    simElements.eventArea.classList.add('hidden');
+                }
+
+                renderTree(simElements.treeSVG);
+            };
+
+            const renderUrnVisual = () => {
+                const currentSetup = getSetupForDraw(state.drawHistory.length);
+                simElements.visual.innerHTML = `
+                    <div class="relative w-48 h-32 bg-gray-300 mx-auto rounded-b-full rounded-t-lg border-4 border-gray-400 flex items-end justify-center p-2 gap-1 overflow-hidden">
+                        ${[...Array(currentSetup.a)].map(() => `<div class="ball w-5 h-5 bg-red-500 rounded-full border-2 border-red-700"></div>`).join('')}
+                        ${[...Array(currentSetup.b)].map(() => `<div class="ball w-5 h-5 bg-blue-500 rounded-full border-2 border-blue-700"></div>`).join('')}
+                    </div>
+                `;
+            };
+
+            const renderCardVisual = () => {
+                const currentSetup = getSetupForDraw(state.drawHistory.length);
+                const totalCards = currentSetup.a + currentSetup.b;
+                simElements.visual.innerHTML = `
+                    <div class="relative w-32 h-48">
+                        <div class="absolute top-4 left-4 w-full h-full bg-slate-400 border-2 border-slate-600 rounded-lg transform -rotate-6"></div>
+                        <div class="absolute top-2 left-2 w-full h-full bg-slate-500 border-2 border-slate-700 rounded-lg transform -rotate-3"></div>
+                        <div class="absolute w-full h-full bg-sky-700 border-4 border-white rounded-lg flex flex-col items-center justify-center text-white">
+                            <span class="text-5xl">🃏</span>
+                            <span class="font-bold text-lg mt-2">${totalCards} Karten</span>
+                        </div>
+                    </div>
+                `;
+            };
+
+            const renderLotteryVisual = () => {
+                const currentSetup = getSetupForDraw(state.drawHistory.length);
+                const totalTickets = currentSetup.a + currentSetup.b;
+                 simElements.visual.innerHTML = `
+                    <div class="flex flex-col items-center justify-center text-slate-700">
+                        <span class="text-8xl">🎟️</span>
+                        <span class="font-bold text-lg mt-2">${totalTickets} Lose in der Trommel</span>
+                    </div>
+                `;
+            }
+
+            const renderTree = (svgElement, isStatic = false) => {
+                svgElement.innerHTML = '';
+                if (!state.treeData) {
+                    svgElement.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#64748b">Ungültige Eingabe. Bitte gib eine positive Anzahl an Elementen an.</text>';
+                    return;
+                }
+
+                const W = svgElement.clientWidth;
+                const H = svgElement.clientHeight;
+                const { outcomes } = state.treeData;
+                
+                const coords = {
+                    start: {x: W * 0.1, y: H * 0.5},
+                    l1_red: {x: W * 0.35, y: H * 0.25},
+                    l1_blue: {x: W * 0.35, y: H * 0.75},
+                    l2_rr: {x: W * 0.6, y: H * 0.125},
+                    l2_rb: {x: W * 0.6, y: H * 0.375},
+                    l2_br: {x: W * 0.6, y: H * 0.625},
+                    l2_bb: {x: W * 0.6, y: H * 0.875},
+                };
+
+                const createSVGElement = (tag, attrs) => {
+                    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+                    for (const key in attrs) {
+                        el.setAttribute(key, attrs[key]);
+                    }
+                    return el;
+                };
+
+                const createBranch = (p1, p2, color, strokeWidth = 3) => {
+                    return createSVGElement('line', {
+                        x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
+                        stroke: color, 'stroke-width': strokeWidth, class: 'tree-branch'
+                    });
+                };
+                
+                const createText = (pos, content, color, isFraction = false, id = null, anchor = 'middle') => {
+                    const g = createSVGElement('g', { class: 'tree-text', fill: color });
+                    if (id) g.id = id;
+
+                    if (isFraction) {
+                        const foreignObject = createSVGElement('foreignObject', {
+                            x: pos.x - 20, y: pos.y - 25, width: 40, height: 50
+                        });
+                        const div = document.createElement('div');
+                        div.innerHTML = content;
+                        foreignObject.appendChild(div);
+                        g.appendChild(foreignObject);
+                    } else {
+                        const text = createSVGElement('text', {
+                            x: pos.x, y: pos.y, 'text-anchor': anchor, 'dominant-baseline': 'middle',
+                             'font-size': '14px', 'font-weight': '500'
+                        });
+                        text.textContent = content;
+                        g.appendChild(text);
+                    }
+                    return g;
+                };
+                
+                const getPathKey = () => state.drawHistory.length > 0 ? state.drawHistory[0] + (state.drawHistory[1] ? state.drawHistory[1] : '') : '';
+
+                // --- Draw Level 1 ---
+                const drawStep = state.drawHistory.length;
+                const pathKey = getPathKey();
+
+                // Highlight simulation path only during the drawing phase, not when finished
+                const highlightL1Red = !isStatic && drawStep > 0 && state.drawHistory[0] === 'a';
+                const highlightL1Blue = !isStatic && drawStep > 0 && state.drawHistory[0] === 'b';
+
+                svgElement.appendChild(createBranch(coords.start, coords.l1_red, '#dc2626', highlightL1Red ? 5 : 3));
+                svgElement.appendChild(createBranch(coords.start, coords.l1_blue, '#2563eb', highlightL1Blue ? 5 : 3));
+                
+                // Probabilities L1
+                let textPos = {x: (coords.start.x + coords.l1_red.x) / 2, y: (coords.start.y + coords.l1_red.y) / 2 - 15};
+                const p1RedText = createText(textPos, formatFraction(...outcomes.aa.p1_frac), '#334155', true, 'prob-l1-red');
+                if (!isStatic) p1RedText.addEventListener('click', () => showModal(`Wahrscheinlichkeit 1. Zug (${state.treeData.labels.a})`, `<p>Die Chance, im ersten Zug '${state.treeData.labels.a}' zu erhalten.</p><p class="mt-2 text-lg font-mono">${outcomes.aa.p1_frac[0]} / ${outcomes.aa.p1_frac[1]} gesamt</p>`));
+                svgElement.appendChild(p1RedText);
+                
+                textPos = {x: (coords.start.x + coords.l1_blue.x) / 2, y: (coords.start.y + coords.l1_blue.y) / 2 - 15};
+                const p1BlueText = createText(textPos, formatFraction(...outcomes.ba.p1_frac), '#334155', true, 'prob-l1-blue');
+                 if (!isStatic) p1BlueText.addEventListener('click', () => showModal(`Wahrscheinlichkeit 1. Zug (${state.treeData.labels.b})`, `<p>Die Chance, im ersten Zug '${state.treeData.labels.b}' zu erhalten.</p><p class="mt-2 text-lg font-mono">${outcomes.ba.p1_frac[0]} / ${outcomes.ba.p1_frac[1]} gesamt</p>`));
+                svgElement.appendChild(p1BlueText);
+                
+                // Nodes L1 with Labels
+                svgElement.appendChild(createSVGElement('circle', { cx: coords.l1_red.x, cy: coords.l1_red.y, r: 8, fill: '#dc2626' }));
+                svgElement.appendChild(createText({ x: coords.l1_red.x + 15, y: coords.l1_red.y }, state.treeData.labels.a.split(' ')[0], '#334155', false, null, 'start'));
+
+                svgElement.appendChild(createSVGElement('circle', { cx: coords.l1_blue.x, cy: coords.l1_blue.y, r: 8, fill: '#2563eb' }));
+                svgElement.appendChild(createText({ x: coords.l1_blue.x + 15, y: coords.l1_blue.y }, state.treeData.labels.b.split(' ')[0], '#334155', false, null, 'start'));
+                
+                // --- Draw Level 2 (if ready) ---
+                if (drawStep > 0 || isStatic) {
+                    const highlight_rr = !isStatic && pathKey === 'aa' && drawStep === 2;
+                    const highlight_rb = !isStatic && pathKey === 'ab' && drawStep === 2;
+                    const highlight_br = !isStatic && pathKey === 'ba' && drawStep === 2;
+                    const highlight_bb = !isStatic && pathKey === 'bb' && drawStep === 2;
+                    
+                    // Branches with persistent colors
+                    svgElement.appendChild(createBranch(coords.l1_red, coords.l2_rr, '#dc2626', highlight_rr ? 5 : 3));
+                    svgElement.appendChild(createBranch(coords.l1_red, coords.l2_rb, '#2563eb', highlight_rb ? 5 : 3));
+                    svgElement.appendChild(createBranch(coords.l1_blue, coords.l2_br, '#dc2626', highlight_br ? 5 : 3));
+                    svgElement.appendChild(createBranch(coords.l1_blue, coords.l2_bb, '#2563eb', highlight_bb ? 5 : 3));
+                    
+                    // Probabilities
+                    const createL2ProbText = (pathKey, p1, p2, color, highlight) => {
+                        textPos = {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 - 15};
+                        const text = createText(textPos, formatFraction(...outcomes[pathKey].p2_frac), '#334155', true, `prob-l2-${pathKey}`);
+                        if (!isStatic) text.addEventListener('click', () => showModal(`Wahrscheinlichkeit 2. Zug (${outcomes[pathKey].path[1]})`, `<p>Die Chance, im zweiten Zug '${outcomes[pathKey].path[1]}' zu erhalten, nachdem im ersten Zug '${outcomes[pathKey].path[0]}' gezogen wurde.</p><p class="mt-2 text-lg font-mono">${outcomes[pathKey].p2_frac[0]} / ${outcomes[pathKey].p2_frac[1]}</p>`));
+                        return text;
+                    };
+                    svgElement.appendChild(createL2ProbText('aa', coords.l1_red, coords.l2_rr, '#dc2626', highlight_rr));
+                    svgElement.appendChild(createL2ProbText('ab', coords.l1_red, coords.l2_rb, '#2563eb', highlight_rb));
+                    svgElement.appendChild(createL2ProbText('ba', coords.l1_blue, coords.l2_br, '#dc2626', highlight_br));
+                    svgElement.appendChild(createL2ProbText('bb', coords.l1_blue, coords.l2_bb, '#2563eb', highlight_bb));
+                    
+                    // Nodes L2 with Labels
+                    svgElement.appendChild(createSVGElement('circle', { cx: coords.l2_rr.x, cy: coords.l2_rr.y, r: 8, fill: '#dc2626' }));
+                    svgElement.appendChild(createText({ x: coords.l2_rr.x + 15, y: coords.l2_rr.y }, state.treeData.labels.a.split(' ')[0], '#334155', false, null, 'start'));
+
+                    svgElement.appendChild(createSVGElement('circle', { cx: coords.l2_rb.x, cy: coords.l2_rb.y, r: 8, fill: '#2563eb' }));
+                    svgElement.appendChild(createText({ x: coords.l2_rb.x + 15, y: coords.l2_rb.y }, state.treeData.labels.b.split(' ')[0], '#334155', false, null, 'start'));
+
+                    svgElement.appendChild(createSVGElement('circle', { cx: coords.l2_br.x, cy: coords.l2_br.y, r: 8, fill: '#dc2626' }));
+                    svgElement.appendChild(createText({ x: coords.l2_br.x + 15, y: coords.l2_br.y }, state.treeData.labels.a.split(' ')[0], '#334155', false, null, 'start'));
+
+                    svgElement.appendChild(createSVGElement('circle', { cx: coords.l2_bb.x, cy: coords.l2_bb.y, r: 8, fill: '#2563eb' }));
+                    svgElement.appendChild(createText({ x: coords.l2_bb.x + 15, y: coords.l2_bb.y }, state.treeData.labels.b.split(' ')[0], '#334155', false, null, 'start'));
+                }
+
+                // --- Draw Outcomes (if ready) ---
+                 if (drawStep > 1 || isStatic) {
+                    const createOutcomeText = (pathKey, pos, highlight) => {
+                        const { prob, p1_frac, p2_frac } = outcomes[pathKey];
+                        const textContent = `P = ${prob.toFixed(3)}`;
+                        
+                        // Make final probability text larger and bolder
+                        const g = createSVGElement('g', { class: 'tree-text', fill: highlight ? '#166534' : '#334155' });
+                        const textEl = createSVGElement('text', {
+                            x: pos.x + 70, y: pos.y, 'text-anchor': 'start', 'dominant-baseline': 'middle',
+                            'font-size': '16px', 'font-weight': '600'
+                        });
+                        textEl.textContent = textContent;
+                        g.appendChild(textEl);
+                        
+                        g.id = `path-${pathKey}`;
+                        g.classList.add('cursor-pointer');
+                        const p1f = formatFraction(...p1_frac);
+                        const p2f = formatFraction(...p2_frac);
+                         if (!isStatic) {
+                            g.addEventListener('click', () => {
+                                // Clicking on the final probability will always show the calculation
+                                showModal('Pfad-Wahrscheinlichkeit (Produktregel)', `<p>Die Gesamtwahrscheinlichkeit für diesen Pfad.</p><div class="flex items-center justify-center gap-2 mt-2 text-lg">${p1f} × ${p2f} = <strong>${prob.toFixed(3)}</strong></div>`)
+                            });
+                         }
+                        svgElement.appendChild(g);
+                    };
+                    createOutcomeText('aa', coords.l2_rr, state.selectedPathsForSum.includes('aa'));
+                    createOutcomeText('ab', coords.l2_rb, state.selectedPathsForSum.includes('ab'));
+                    createOutcomeText('ba', coords.l2_br, state.selectedPathsForSum.includes('ba'));
+                    createOutcomeText('bb', coords.l2_bb, state.selectedPathsForSum.includes('bb'));
+                }
+            };
+
+            const updateSumRuleDisplay = (isEvent) => {
+                let totalProb = 0;
+                let calculationStr = [];
+                state.selectedPathsForSum.forEach(key => {
+                    totalProb += state.treeData.outcomes[key].prob;
+                    calculationStr.push(state.treeData.outcomes[key].prob.toFixed(3));
+                });
+                
+                let displayText;
+                if (calculationStr.length === 0) {
+                    displayText = isEvent ? 'Wähle ein Ereignis aus.' : 'P(E) = 0';
+                } else if (calculationStr.length === 1) {
+                    displayText = `P(E) = ${calculationStr[0]}`;
+                } else {
+                    displayText = `P(E) = ${calculationStr.join(' + ')} = ${totalProb.toFixed(3)}`;
+                }
+                simElements.sumRuleDisplay.innerHTML = displayText;
+            };
+
+            // --- EVENT CALCULATION ---
+            const renderEventButtons = () => {
+                const outcomeA = state.treeData.labels.a;
+                const events = {
+                    'MIN_ONE_A': `Mindestens ein(e) ${outcomeA}`,
+                    'EXACTLY_ONE_A': `Genau ein(e) ${outcomeA}`,
+                    'NO_A': `Kein(e) ${outcomeA}`,
+                    'TWO_SAME': 'Zwei gleiche Ergebnisse'
+                };
+
+                simElements.eventButtons.innerHTML = '';
+                state.selectedPathsForSum = []; // Reset selection
+                
+                for (const [key, value] of Object.entries(events)) {
+                    const button = document.createElement('button');
+                    button.textContent = value;
+                    button.dataset.eventKey = key;
+                    button.className = 'p-2 border-2 border-slate-300 bg-white rounded-lg text-center transition duration-300 hover:border-sky-500 hover:bg-sky-50 event-btn';
+                    button.addEventListener('click', () => handleEventSelection(key));
+                    simElements.eventButtons.appendChild(button);
+                }
+            };
+
+            const handleEventSelection = (eventKey) => {
+                document.querySelectorAll('.event-btn').forEach(btn => {
+                    if (btn.dataset.eventKey === eventKey) {
+                         btn.classList.add('border-sky-500', 'bg-sky-50');
+                    } else {
+                         btn.classList.remove('border-sky-500', 'bg-sky-50');
+                    }
+                });
+
+                switch (eventKey) {
+                    case 'MIN_ONE_A':
+                        state.selectedPathsForSum = ['aa', 'ab', 'ba'];
+                        break;
+                    case 'EXACTLY_ONE_A':
+                        state.selectedPathsForSum = ['ab', 'ba'];
+                        break;
+                    case 'NO_A':
+                        state.selectedPathsForSum = ['bb'];
+                        break;
+                    case 'TWO_SAME':
+                         state.selectedPathsForSum = ['aa', 'bb'];
+                        break;
+                    default:
+                        state.selectedPathsForSum = [];
+                }
+                updateSumRuleDisplay(true);
+                renderTree(simElements.treeSVG);
+            };
+
+            // --- QUIZ LOGIC ---
+            const quizData = {
+                terms: [
+                    { id: 't1', text: 'Pfadregel (Produktregel)' },
+                    { id: 't2', text: 'Summenregel' },
+                    { id: 't3', text: 'Ziehen mit Zurücklegen' },
+                    { id: 't4', text: 'Ziehen ohne Zurücklegen' },
+                ],
+                definitions: [
+                    { id: 'd1', text: 'Addiert die Wahrscheinlichkeiten mehrerer Pfade, um die Wahrscheinlichkeit eines Gesamt-Ereignisses zu berechnen.' },
+                    { id: 'd2', text: 'Die Wahrscheinlichkeiten für den zweiten Zug ändern sich nicht, da die Gesamtzahl gleich bleibt.' },
+                    { id: 'd3', text: 'Multipliziert die Wahrscheinlichkeiten entlang eines Pfades, um die Gesamtwahrscheinlichkeit dieses Ergebnisses zu finden.' },
+                    { id: 'd4', text: 'Die Wahrscheinlichkeiten für den zweiten Zug ändern sich, da sich die Gesamtzahl der Elemente verringert hat.' },
+                ],
+                correctPairs: { t1: 'd3', t2: 'd1', t3: 'd2', t4: 'd4' }
+            };
+
+            const showQuiz = () => {
+                state.quizState = { selectedTerm: null, matches: {}, completed: false };
+                renderQuiz();
+                quizElements.screen.classList.remove('hidden');
+                setTimeout(() => quizElements.screen.classList.remove('opacity-0'), 10);
+            };
+
+            const hideQuiz = () => {
+                quizElements.screen.classList.add('opacity-0');
+                setTimeout(() => quizElements.screen.classList.add('hidden'), 300);
+            };
+
+            const renderQuiz = () => {
+                quizElements.termsContainer.innerHTML = '';
+                quizElements.definitionsContainer.innerHTML = '';
+                quizElements.feedback.textContent = '';
+                quizElements.backBtn.classList.add('hidden');
+                
+                // Shuffle definitions for variety
+                const shuffledDefinitions = [...quizData.definitions].sort(() => Math.random() - 0.5);
+
+                quizData.terms.forEach(term => {
+                    const el = document.createElement('div');
+                    el.id = term.id;
+                    el.textContent = term.text;
+                    el.className = 'quiz-item quiz-term p-4 bg-slate-100 rounded-lg cursor-pointer border-2 border-slate-200 transition';
+                    el.addEventListener('click', () => handleQuizTermClick(term.id));
+                    quizElements.termsContainer.appendChild(el);
+                });
+
+                shuffledDefinitions.forEach(def => {
+                    const el = document.createElement('div');
+                    el.id = def.id;
+                    el.textContent = def.text;
+                    el.className = 'quiz-item quiz-def p-4 bg-slate-100 rounded-lg cursor-pointer border-2 border-slate-200 transition';
+                    el.addEventListener('click', () => handleQuizDefClick(def.id));
+                    quizElements.definitionsContainer.appendChild(el);
+                });
+            };
+
+            const handleQuizTermClick = (termId) => {
+                if (state.quizState.matches[termId]) return; // Already matched
+                state.quizState.selectedTerm = termId;
+                
+                document.querySelectorAll('.quiz-term').forEach(el => {
+                    el.classList.toggle('bg-sky-200', el.id === termId);
+                    el.classList.toggle('border-sky-400', el.id === termId);
+                });
+            };
+
+            const handleQuizDefClick = (defId) => {
+                const termId = state.quizState.selectedTerm;
+                if (!termId || Object.values(state.quizState.matches).includes(defId)) return;
+
+                const isCorrect = quizData.correctPairs[termId] === defId;
+                const termEl = document.getElementById(termId);
+                const defEl = document.getElementById(defId);
+
+                if (isCorrect) {
+                    state.quizState.matches[termId] = defId;
+                    termEl.className = 'quiz-item p-4 bg-green-100 border-2 border-green-400 rounded-lg text-slate-500';
+                    defEl.className = 'quiz-item p-4 bg-green-100 border-2 border-green-400 rounded-lg text-slate-500';
+                    quizElements.feedback.textContent = 'Richtig!';
+                    quizElements.feedback.className = 'text-lg font-semibold h-8 text-green-600';
+                } else {
+                    defEl.classList.add('bg-red-200', 'border-red-400');
+                    quizElements.feedback.textContent = 'Versuche es nochmal!';
+                    quizElements.feedback.className = 'text-lg font-semibold h-8 text-red-600';
+                    setTimeout(() => {
+                        defEl.classList.remove('bg-red-200', 'border-red-400');
+                        quizElements.feedback.textContent = '';
+                    }, 1000);
+                }
+
+                state.quizState.selectedTerm = null;
+                 document.querySelectorAll('.quiz-term').forEach(el => el.classList.remove('bg-sky-200', 'border-sky-400'));
+
+                 if (Object.keys(state.quizState.matches).length === quizData.terms.length) {
+                     quizElements.feedback.textContent = 'Super, alles richtig zugeordnet!';
+                     quizElements.backBtn.classList.remove('hidden');
+                 }
+            };
+
+
+            // --- EVENT LISTENERS ---
+            modalElements.closeBtn.addEventListener('click', hideModal);
+            modalElements.container.addEventListener('click', (e) => {
+                if (e.target === modalElements.container) hideModal();
+            });
+
+            simElements.drawBtn.addEventListener('click', performDraw);
+            simElements.resetBtn.addEventListener('click', () => {
+                // Reset state to initial defaults
+                state.currentScreen = 'setup';
+                state.experimentType = null;
+                state.isWithReplacement = null;
+                state.setupData = { a: 3, b: 5 };
+                state.drawHistory = [];
+                state.treeData = null;
+                state.selectedPathsForSum = [];
+                updateSetupUI();
+                switchScreen('setup');
+            });
+            
+            simElements.whiteboardBtn.addEventListener('click', () => {
+                switchScreen('whiteboard');
+                whiteboardElements.title.textContent = simElements.title.textContent;
+                whiteboardElements.subtitle.textContent = simElements.subtitle.textContent;
+                // Use a timeout to ensure the SVG container is visible and has dimensions
+                setTimeout(() => renderTree(whiteboardElements.treeSVG, true), 50);
+            });
+
+            whiteboardElements.exitBtn.addEventListener('click', () => {
+                switchScreen('simulation');
+            });
+
+            simElements.quizBtn.addEventListener('click', showQuiz);
+            quizElements.closeBtn.addEventListener('click', hideQuiz);
+            quizElements.backBtn.addEventListener('click', hideQuiz);
+
+            // Make tree responsive
+            new ResizeObserver(() => {
+                if (state.currentScreen === 'simulation') {
+                    renderTree(simElements.treeSVG);
+                } else if (state.currentScreen === 'whiteboard') {
+                    renderTree(whiteboardElements.treeSVG, true);
+                }
+            }).observe(document.getElementById('app-container'));
+
+
+            // --- INITIALIZATION ---
+            updateSetupUI();
+            switchScreen('setup');
+        });
+    </script>
+
+</body>
+</html>
+
